@@ -1,0 +1,130 @@
+{
+	"variables": [],
+	"info": {
+		"name": "mosly",
+		"_postman_id": "ed68ae62-6440-58aa-b27f-75234c9f7755",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://0.0.0.0:85/users",
+			"request": {
+				"url": "http://0.0.0.0:85/users",
+				"method": "GET",
+				"header": [
+					{
+						"key": "token",
+						"value": "227f1b394e52aaeba1abe567deb7e3",
+						"description": ""
+					}
+				],
+				"body": {},
+				"description": "get list od all users"
+			},
+			"response": []
+		},
+		{
+			"name": "http://0.0.0.0:85/users",
+			"request": {
+				"url": "http://0.0.0.0:85/users",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"email\" : \"mical@gmail.com\",\n\t\"name\" : \"Micael da silva\",\n\t\"password\" : \"mical102\"\n}"
+				},
+				"description": "cadastro do usuario passando paramentro pelo body"
+			},
+			"response": []
+		},
+		{
+			"name": "http://0.0.0.0:85/login",
+			"request": {
+				"url": "http://0.0.0.0:85/login",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"email\" : \"mical@gmail.com\",\n\t\"password\" : \"mical102\"\n}"
+				},
+				"description": "login com usuario passando email e senha"
+			},
+			"response": []
+		},
+		{
+			"name": "http://0.0.0.0:85/users/10/",
+			"request": {
+				"url": "http://0.0.0.0:85/users/10/",
+				"method": "GET",
+				"header": [
+					{
+						"key": "token",
+						"value": "dd5ec8cd269891b0d62b0cd10a967b",
+						"description": ""
+					}
+				],
+				"body": {},
+				"description": "listar somente um usuario passando id no paramentro GET e o token do usuario cadastrado no header."
+			},
+			"response": []
+		},
+		{
+			"name": "http://0.0.0.0:85/users/3",
+			"request": {
+				"url": "http://0.0.0.0:85/users/3",
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					},
+					{
+						"key": "token",
+						"value": "9b3e108cafdd876491957b4a6c9fd6",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"tinoweb@gmail.com\",\n    \"name\": \"tinoweb\",\n    \"password\": \"999999\"\n}"
+				},
+				"description": "update usuario passando o token, email, nome e password no body e por fim o id do usuario a ser editado, OBS: o mesmo usuario deve estar logado no sistema"
+			},
+			"response": []
+		},
+		{
+			"name": "http://0.0.0.0:85/users/5",
+			"request": {
+				"url": "http://0.0.0.0:85/users/5",
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "token",
+						"value": "6bb5a934b209d7e606052fb8e659d5",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"description": "deletar o usuario, precisa ser passado pelo GET URL o id do usuario a ser deletado e o token do usuario autenticado: ou seja precisa ser autenticado no sistema para realizar a operacao."
+			},
+			"response": []
+		}
+	]
+}
