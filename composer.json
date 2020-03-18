@@ -1,0 +1,21 @@
+{
+    "name": "tinoweb/api-rest-mosly",
+    "description": "api em php desafio da mosly para o processo seletivo",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "tinoweb",
+            "email": "tino477@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {},
+
+    "autoload": {
+        "psr-4": {
+            "MoslyApp\\": "src/"
+        }
+    }
+
+}
