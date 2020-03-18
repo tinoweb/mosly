@@ -11,7 +11,7 @@ CREATE TABLE usuario (
 
 CREATE TABLE IF NOT EXISTS drinks (
     id INT AUTO_INCREMENT,
-    drink INT,
+    drink INT DEFAULT 1,
     idusuario INT UNSIGNED,
     PRIMARY KEY (id),
     FOREIGN KEY (idusuario)

@@ -1,5 +1,16 @@
 <?php 
+
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
 session_start();
+
+
+$method = $_SERVER['REQUEST_METHOD'];
+$body = file_get_contents('php://input');
+
+$parametros = $_GET;
+$headers = getallheaders();
+$token = $headers["Token"];
 
 require __DIR__ . '/vendor/autoload.php';
 
@@ -8,108 +19,244 @@ use MoslyApp\Model\Connection;
 
 $usu = new User;
 
-///################Listar usuario######################### GET
-$todosUsuarios = $usu->getallUser();
-//echo "<pre>";
-//print_r($todosUsuarios);
-///#######################################################
+//var_dump($parametros['route']);
 
-
-///################listar 1 usuario##################  trazer tambem quantos drinks ele ja bebeu
-$userId = 2;
-$token = "445c65ae9df38c069f51163ed20a0f";
-$umUsuario = $usu->getOneUser($userId, $token);
-if($umUsuario == "userNotFound"){
-    echo "Usuario não encontrado";
-}elseif($umUsuario == "notPossibleTokenInvalid"){
-    echo "Id do usuario Invalido ou token inválido.";
-}else{
-    echo "<pre>";
-    print_r($umUsuario);
+function pegaId($param){
+    $arrRet = [];
+    $expl = explode( "/", $param);
+    $id = $expl[2];
+    $user = $expl[1];
+    $id = (int) $id;
+    if($id && $user){
+        $arrRet[0] = $id;
+        $arrRet[1] = $user;
+        return $arrRet;
+    }
 }
 
-///##################################################
+function pegaIdUserDrinkParam($param){
+    $arrRet = [];
+    $expl = explode( "/", $param);
+    $user = $expl[1];
+    $id = $expl[2];
+    $drink = $expl[3];
+    $id = (int) $id;
+    if($id && $user){
+        $arrRet[0] = $id;
+        $arrRet[1] = $user;
+        $arrRet[2] = $drink;
+        return $arrRet;
+    }
+}
 
+//$valor = pegaId($parametros['route'])[0];
+//$userparam = pegaId($parametros['route'])[1];
 
-///################user drink######################### adicionar os drinks do usuario
+///################Listar todos usuarios######################### GET
+if($parametros['route'] == "/users" && $method == "GET" && !empty($token)){
+    $retToken = $usu->validateAllTokens($token);
+    if($retToken){
+        $todosUsuarios = $usu->getallUser();
+        $newArr = [];
+        foreach($todosUsuarios as $key => $tdosUsuario){
+            unset($tdosUsuario['token']);
+            $newArr[$key] = $tdosUsuario;
+        }
+        echo json_encode($newArr);
+    }else{
+        $resposta = [
+            "status" => "error",
+            "message" => "token inválido"
+        ];
+        echo json_encode($resposta);
+    }
+}elseif($parametros['route'] == "/users" && $method == "POST" && !empty($body)){
+    //############################cadastrar usuario######################### POST
+    $body = json_decode($body, true);
+    $name = $body["name"];
+    $email = $body["email"];
+    $password = $body["password"];
 
+    if(!empty($name) && !empty($email) && !empty($password) ){
+        $retorno = $usu->saveUser($email, $name, $password);
+        if(is_numeric($retorno)){
+            $resposta = [
+                "status" => "success",
+                "message" => "Usuario cadastrado com sucesso"
+            ];
+            echo json_encode($resposta);
+        }elseif($retorno == "userWasInserted"){
+            $resposta = [
+                "status" => "error",
+                "message" => "Erro, esse usuario ja se encontra cadastrado"
+            ];
+            echo json_encode($resposta);
+        }
+    }else{
+        $resposta = [
+            "status" => "error",
+            "message" => "Erro, informação em falta."
+        ];
+        echo json_encode($resposta);
+    }
+}elseif($parametros['route'] == "/login" && $method == "POST" && !empty($body)){
+    ///#######################logar com usuario################################
+    $body = json_decode($body, true);
+    $email = $body["email"];
+    $password = $body["password"];
 
-///##################################################
+    $retorno = $usu->validateUserFromLogin($email, $password);
 
+    if($retorno != "notLogged"){
+        $_SESSION["username"]=$retorno["name"];
+        $_SESSION["userid"]=$retorno["id"];
+        $_SESSION["email"]=$retorno["email"];
+        $_SESSION["token"]=$retorno["token"];
+        $_SESSION["drink_counter"]=$retorno["drink_counter"]; 
 
-///##############################autenticar usuario######################### POST
-/*
-$email = "carlos@gmail.com";
-$password = "123123";
-
-$retorno = $usu->validateUserFromLogin($email, $password);
-
-if($retorno != "notLogged"){
-    echo "<pre>";
+        echo json_encode($retorno);
+        
+    }else{
+        if(isset($_SESSION)){
+            session_destroy();
+        }
+        $resposta = [
+            "status" => "error",
+            "message" => "Erro, Usuário não existe ou senha invalida!"
+        ];
+        echo json_encode($resposta);
+    }
+}elseif(
+    is_numeric(pegaId($parametros['route'])[0]) 
+    && pegaId($parametros['route'])[1] == "users" 
+    && $method == "GET" && !empty($token)
+    ){
+        $userId = pegaId($parametros['route'])[0];
+        $retToken = $usu->validateAllTokens($token);
+        if($retToken){
+            $umUsuario = $usu->getOneUser($userId, $token);
+            if($umUsuario == "userNotFound"){
+                $resposta = [
+                    "status" => "error",
+                    "message" => "Usuario não encontrado",
+                ];
+                
+                echo json_encode($resposta);
+            }elseif($umUsuario == "notPossibleTokenInvalid"){
+                $resposta = [
+                    "status" => "error",
+                    "message" => "Id do usuario Invalido ou token inválido."
+                ];
+                echo json_encode($resposta);
+            }else{
+                unset($umUsuario["token"]);
+                echo json_encode($umUsuario);
+            }
+        }else{
+            $resposta = [
+                "status" => "error",
+                "message" => "token inválido"
+            ];
+            echo json_encode($resposta);
+        }
+}elseif(
+    is_numeric(pegaId($parametros['route'])[0]) 
+    && pegaId($parametros['route'])[1] == "users" 
+    && $method == "PUT" && !empty($token)
+    && !empty($body)
+    ){
     
-    $_SESSION["username"]=$retorno["name"];
-    $_SESSION["userid"]=$retorno["id"];
-    $_SESSION["email"]=$retorno["email"];
-    $_SESSION["token"]=$retorno["token"];
-    print($_SESSION["username"] ." com o email =>". $_SESSION["email"] ." e token ". $_SESSION["token"]);
-}else{
-    if(isset($_SESSION)){
-        session_destroy();
+    $userId = pegaId($parametros['route'])[0];
+    $body = json_decode($body, true);
+    $name = $body["name"];
+    $email = $body["email"];
+    $password = $body["password"];
+    
+    if( isset($_SESSION) && $_SESSION["userid"] == $userId ) {
+        $updateUser = $usu->updateUser($userId, $token, $name, $email, $password);
+        if($updateUser==1){
+            $resposta = [
+                "status" => "sucesso",
+                "message" => "Usuario atualizado com sucesso."
+            ];
+            echo json_encode($resposta);
+
+        }elseif($updateUser == "notPossibleTokenInvalid"){
+            $resposta = [
+                "status" => "error",
+                "message" => "Id do usuario Invalido ou token inválido."
+            ];
+            echo json_encode($resposta);
+
+        }elseif($updateUser == "userIdInvalid"){
+            $resposta = [
+                "status" => "error",
+                "message" => "Usuário Inválido"
+            ];
+            echo json_encode($resposta);
+        }
+    }else{
+        $resposta = [
+            "status" => "error",
+            "message" => "Necessario autenticar para prosseguir com a operação."
+        ];
+        echo json_encode($resposta);
     }
-    echo $_SESSION["username"];
-    echo " usario não existe ou a senha é invalida";
+}elseif(
+    is_numeric(pegaId($parametros['route'])[0]) 
+    && pegaId($parametros['route'])[1] == "users" 
+    && $method == "DELETE" && !empty($token)
+    ){
+        $userId = pegaId($parametros['route'])[0];
+
+        if( isset($_SESSION) && $_SESSION["userid"] == $userId ) {
+            $retorno = $usu->deleteUser($userId, $token);
+            if($retorno == 1){
+                $resposta = [
+                    "status" => "sucesso",
+                    "message" => "Usuário deletado com sucesso"
+                ];
+                echo json_encode($resposta);
+            }elseif($retorno == "userIdOrTokenError"){
+                $resposta = [
+                    "status" => "error",
+                    "message" => "Id do usuário Inválido ou token errado."
+                ];
+                echo json_encode($resposta);
+            }
+        }else{
+            $resposta = [
+                "status" => "error",
+                "message" => "Necessario autenticar para prosseguir com a operação."
+            ];
+            echo json_encode($resposta);
+        }
+}elseif(
+        is_numeric(pegaIdUserDrinkParam($parametros['route'])[0]) 
+        && pegaIdUserDrinkParam($parametros['route'])[1] == "users"
+        && pegaIdUserDrinkParam($parametros['route'])[2] == "drink" 
+        && !empty($body)
+        && $method == "POST" 
+        && !empty($token)
+    ){
+        $userId = pegaIdUserDrinkParam($parametros['route'])[0];
+        $body = json_decode($body, true);
+        $drink_ml = $body["drink_ml"];
+
+        $retorno = $usu->incrimentUserDrink($userId, $token, $drink_ml);
+        if($retorno == "userNotFound"){
+            $resposta = [
+                "status" => "error",
+                "message" => "Usuario não encontrado."
+            ];
+            echo json_encode($resposta);
+        }elseif($retorno == "notPossibleTokenInvalid"){
+            $resposta = [
+                "status" => "error",
+                "message" => "Id do usuário token inválido."
+            ];
+            echo json_encode($resposta);
+        }else{
+            echo json_encode($retorno);
+        }
 }
-///#####################################################################
-*/
-
-
-///################atualizar#################################################### PUT
-/*
-$userId = 2;
-$token = "445c65ae9df38c069f51163ed20a0f";
-$name = "Kristina Melody";
-$email = "kris@gmail.com";
-$password = "123456";
-
-if( isset($_SESSION) && $_SESSION["userid"] == $userId ) {
-    $updateUser = $usu->updateUser($userId, $token, $name, $email, $password);
-    if($updateUser==1){
-        echo "Usuario atualizado com sucesso";
-    }elseif($updateUser == "notPossibleTokenInvalid"){
-        echo "Id do usuario Invalido ou token inválido."; 
-    }elseif($updateUser == "userIdInvalid"){
-        echo "Usuario Invalido";
-    }
-}else{
-    echo "Necessario autenticar para prosseguir com a operação.";
-}
-///##############################################################################
-*/
-
-///############################deletar usuario########################## DELETE
-/*
-$user_id = 1;
-$token = "1eba822c3ebbf94a3e9d6e8e9f83d0";
-
-if( isset($_SESSION) && $_SESSION["userid"] == $user_id ) {
-    $retorno = $usu->deleteUser($user_id, $token);
-    if($retorno == 1){
-        echo "Usuario deletado com sucesso";        
-    }elseif($retorno == "userIdOrTokenError"){
-        echo "Id do usuario Invalido ou token errado."; 
-    }
-}else{
-    echo "Necessario autenticar para prosseguir com a operação.";
-}
-///#####################################################################
-*/
-
-
-///############################cadastro usuario######################### POST
-/*
-$id = $usu->saveUser("carlos@gmail.com", "carlos", "123123");
-echo "gravado com sucesso ".$id;
-var_dump($_GET);
-*/
-///#####################################################################
-//json_encode(
